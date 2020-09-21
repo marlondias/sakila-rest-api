@@ -1,14 +1,11 @@
 # Sakila RESTful API
 
-RESTful API for manipulating movie information. Based on the structure from Sakila database. 
-
-(project is incomplete, and so is this description)
+RESTful API for manipulating movie information. Based on the structure from Sakila database. (Project is incomplete, and so is this description)
 
 ## Contributing
 
 Thank you for considering contributing to this project. 
 However, it is just a proof of concept for educational purposes and pull requests might be ignored. 
-
 Feel free to fork it.
 
 ## Licenses
