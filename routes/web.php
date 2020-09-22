@@ -11,8 +11,24 @@
 |
 */
 
+use App\Http\Controllers\ActorController;
+
 $router->get('/', function () use ($router) {
-    //return $router->app->version();
-    return "Lumen is working.";
+    return $router->app->version();
 });
 
+$router->group(['prefix' => 'api/actors'], function () use ($router) {
+
+    $router->get('/', 'ActorController@index');
+    $router->post('/', 'ActorController@store');
+    $router->put('/', 'ActorController@notAllowed');
+    $router->patch('/', 'ActorController@notAllowed');
+    $router->delete('/', 'ActorController@notAllowed');
+
+    $router->get('/{id}/', 'ActorController@show');
+    $router->post('/{id}/', 'ActorController@notAllowed');
+    $router->put('/{id}/', 'ActorController@notAllowed');
+    $router->patch('/{id}/', 'ActorController@modify');
+    $router->delete('/{id}/', 'ActorController@delete');
+
+});
