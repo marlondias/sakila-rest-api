@@ -2,15 +2,13 @@
 
 namespace App;
 
-use Illuminate\Database\Eloquent\Model;
-
-class Actor extends Model
+class Actor extends RESTfulModel
 {
     protected $table = 'actor';
     protected $primaryKey = 'actor_id';
     protected $timestamps = false;
 
-    public $columnsMetadata = [
+    protected $columnsMetadata = [
         'first_name' => [
             'type' => 'string',
             'orderBy' => [ 'allowed' => true, ],
