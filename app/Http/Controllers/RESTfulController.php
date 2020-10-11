@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Laravel\Lumen\Routing\Controller as BaseController;
 use App\RESTfulModel;
+use DateTime;
 
 class RESTfulController extends BaseController
 {
@@ -16,13 +17,13 @@ class RESTfulController extends BaseController
      */
     protected $filterQueryModifiers = [
         'equalTo' => '',
-        'notEqualTo' => 'ne',
+        'notEqualTo' => 'not',
         'lessThan' => 'lt',
         'lessThanOrEqualTo' => 'lte',
         'greaterThan' => 'gt',
         'greaterThanOrEqualTo' => 'gte',
         'textContains' => 'contains',
-        'textStartsWith' => 'starts',
+        'textStartsWith' => 'begins',
         'textEndsWith' => 'ends',
     ];
 
@@ -51,7 +52,7 @@ class RESTfulController extends BaseController
     {
         $options = [];
 
-        foreach ($model->columnsMetadata as $columnName => $metadata) {
+        foreach ($model->getColumnsMetadata() as $columnName => $metadata) {
             if (!$metadata['filter']['allowed']) {
                 continue;
             }
@@ -89,63 +90,102 @@ class RESTfulController extends BaseController
      */
     public function validateFilterQuery(RESTfulModel $model, $queryKey, $queryValue)
     {
-        $columnName = $queryKey;
+        if (!is_string($queryKey) || strlen($queryKey) == 0) {
+            // Query key is not valid
+            return false;
+        }
 
-        $queryModifier = '';
-        $regexForQueryModifier = '/^(.+)\[(\w+)\]/';
-        $captureGroups = [];
-        if (preg_match($regexForQueryModifier, $queryKey, $captureGroups)) {
-            $columnName = $captureGroups[1];
-            $queryModifier = $captureGroups[2];
+        if (!is_string($queryValue) || strlen($queryValue) == 0) {
+            // Query value is not valid
+            return false;
+        }
+
+        $filterOptions = $this->getFilterOptions($model);
+
+        if (empty($filterOptions)) {
+            // Model does not allow any filter
+            return false;
+        }
+
+        $columnName = '';
+        foreach ($filterOptions as $column => $options) {
+            $index = array_search("{$queryKey}=VALUE", $options);
+            if ($index !== false) {
+                $columnName = $column;
+                break;
+            }
+        }
+
+        if (empty($columnName)) {
+            // Query key has no correspondence in filterOptions
+            return false;
         }
 
         $metadata = $model->getColumnMetadata($columnName);
-        if (empty($metadata)) {
-            // Column name is not defined in the model metadata
-            return false;
-        }
 
-        if (! array_key_exists('filter', $metadata)) {
-            // Metadata does not define filter
-            return false;
-        }
-
-        $filterMetadata = $metadata['filter'];
-        if (! array_key_exists('allowed', $filterMetadata) || ! $filterMetadata['allowed']) {
-            // Column does not allow filters
-            return false;
-        }
-
-        $allowedFilterMethods = $this->filterQueryModifiers['equalTo'];
-
-        // Checks if filter modifier is valid for the data type
-        if (! empty($queryModifier)) {
-
-            $modifierID = array_search($queryModifier, $this->filterQueryModifiers);
-            if ($modifierID == false) {
-                // Query modifier in not valid
-                return false;
-            }
-
-            $dataType = $metadata['type'];
-            if (in_array($dataType, array_keys($this->filterMethodsByColumnType))) {
-                $allowedFilterMethods = $this->filterMethodsByColumnType[$dataType];
-            }
-
-            if (!in_array($modifierID, $allowedFilterMethods)) {
-                // Suffix is valid but not allowed
-                return false;
+        if (isset($metadata['filter']['length'])) {
+            $lengths = $metadata['filter']['length'];
+            if (is_array($lengths) && count($lengths) == 2) {
+                $length = strlen($queryValue);
+                if ($length < $lengths[0] || $length > $lengths[1]) {
+                    // Length of query value is not allowed
+                    return false;
+                }    
             }
         }
 
-        // Checks if value's string length is between limits
-        if (array_key_exists('length', $filterMetadata) && count($filterMetadata['length']) == 2) {
-            $minLength = $filterMetadata['length'][0];
-            $maxLength = $filterMetadata['length'][1];
-            $length = strlen($queryValue);
-            if ($length < $minLength || $length > $maxLength) {
-                return false;
-            }
+        if (!isset($metadata['type'])) {
+            return false; // must have a type
+        }
+
+        // Check if value is valid for the column type
+        switch ($metadata['type']) {
+            case 'boolean':
+                if (!in_array(strtolower($queryValue), ['0', '1', 'false', 'true'])) {
+                    // Boolean query with non-boolean value
+                    return false;
+                }
+                break;
+            case 'number':
+                if (!is_numeric($queryValue)) {
+                    return false;
+                }
+                if (floatval($queryValue) != $queryValue && intval($queryValue) != $queryValue) {
+                    // Value does not match numeric conversions, useless in numeric query
+                    return false;
+                }
+                break;
+            case 'text':
+                if (trim($queryValue) !== $queryValue) {
+                    // Should not have leading or trailing spaces
+                    return false;
+                }
+                break;
+            case 'date':
+                $date = DateTime::createFromFormat('Y-m-d', $queryValue);
+                if (!is_object($date)) {
+                    // Value is invalid as date using YMD format
+                    return false;
+                }
+                break;
+            case 'time':
+                $timeA = DateTime::createFromFormat('H:i:s', $queryValue);
+                $timeB = DateTime::createFromFormat('H:i', $queryValue);
+                if (!is_object($timeA) && !is_object($timeB)) {
+                    // Value is invalid as time using standard formats
+                    return false;
+                }
+                break;
+            case 'datetime':
+                $dateTime = DateTime::createFromFormat('Y-m-d H:i:s', $queryValue);
+                if (!is_object($dateTime)) {
+                    // Value is invalid as date/time using YMDHIS format
+                    return false;
+                }
+                break;
+            default:
+                return false; // All column types must have some validation defined
+                break;
         }
 
         return true;
@@ -160,7 +200,7 @@ class RESTfulController extends BaseController
     public function getOrderByOptions(Actor $model)
     {
         $options = [];
-        foreach ($model->columnsMetadata as $colName => $metadata) {
+        foreach ($model->getColumnsMetadata() as $colName => $metadata) {
             if (!$metadata['orderBy']['allowed']) {
                 continue;
             }

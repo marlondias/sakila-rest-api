@@ -6,20 +6,19 @@ class Actor extends RESTfulModel
 {
     protected $table = 'actor';
     protected $primaryKey = 'actor_id';
-    protected $timestamps = false;
+    public $timestamps = false;
 
     protected $columnsMetadata = [
         'first_name' => [
-            'type' => 'string',
+            'type' => 'text',
             'orderBy' => [ 'allowed' => true, ],
             'filter' => [
                 'allowed' => true, 
                 'length' => [1, 100], 
-                'methods' => ['equals', 'contains'],
             ],
         ],
         'last_name' => [
-            'type' => 'string',
+            'type' => 'text',
             'orderBy' => [
                 'allowed' => true, 
                 'default' => 'ASC'
@@ -27,7 +26,6 @@ class Actor extends RESTfulModel
             'filter' => [
                 'allowed' => true, 
                 'length' => [1, 100], 
-                'methods' => ['equals', 'contains'],
             ],
         ],
         'last_update' => [
@@ -36,11 +34,7 @@ class Actor extends RESTfulModel
                 'allowed' => true, 
                 'default' => 'DESC'
             ],
-            'filter' => [
-                'allowed' => true, 
-                'length' => [10, 10], //yyyy-mm-dd 
-                'methods' => ['equals', 'lessThan', 'greaterThan'],
-            ],
+            'filter' => ['allowed' => true],
         ],
     ];
 
