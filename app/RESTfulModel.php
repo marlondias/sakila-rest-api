@@ -32,14 +32,14 @@ class RESTfulModel extends Model
      * Returns metadata for a column, searching by its name.
      *
      * @param string $columnName
-     * @return array|null
+     * @return array
      */
     public function getColumnMetadata($columnName) 
     {
-        if (in_array($columnName, $this->columnsMetadata)) {
+        if (array_key_exists($columnName, $this->columnsMetadata)) {
             return $this->columnsMetadata[$columnName];
         }
-        return null;
+        return [];
     }
 
 }
