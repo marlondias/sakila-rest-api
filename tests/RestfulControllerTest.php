@@ -51,16 +51,26 @@ class RestfulControllerTest extends TestCase
         $controller = new RESTfulController();
         $model = new Actor();
         $filterOptions = $controller->getFilterOptions($model);
-        $goodValues = ['0', '1', '-1', '1.543', '2020-01-01', 'abc', 'true', 'false'];
-        foreach ($filterOptions as $options) {
-            foreach ($options as $opt) {
-                $key = str_replace('=VALUE', '', $opt);
-                foreach ($goodValues as $value) {
-                    $status = $controller->validateFilterQuery($model, $key, $value);
-                    $this->assertTrue($status);
-                }
+
+        $goodValuesText = ['10', '1', '-1', '1.543', '2020-01-01', 'abc', 'true', 'false'];
+        $goodValuesDateTime = ['2020-01-01 00:00:01', '2020-01-23 01:01', '2020-12-5 12:21', '2020-05-11'];
+
+        foreach ($filterOptions['first_name'] as $opt) {
+            $key = str_replace('=VALUE', '', $opt);
+            foreach ($goodValuesText as $value) {
+                $status = $controller->validateFilterQuery($model, $key, $value, true);
+                $this->assertTrue($status);
             }
         }
+
+        foreach ($filterOptions['last_update'] as $opt) {
+            $key = str_replace('=VALUE', '', $opt);
+            foreach ($goodValuesDateTime as $value) {
+                $status = $controller->validateFilterQuery($model, $key, $value);
+                $this->assertTrue($status);
+            }
+        }
+
     }
 
 

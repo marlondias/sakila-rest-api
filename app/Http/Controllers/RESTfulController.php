@@ -88,7 +88,7 @@ class RESTfulController extends BaseController
      * @param string $queryValue
      * @return boolean
      */
-    public function validateFilterQuery(RESTfulModel $model, $queryKey, $queryValue)
+    public function validateFilterQuery(RESTfulModel $model, $queryKey, $queryValue, $dump = false)
     {
         if (!is_string($queryKey) || strlen($queryKey) == 0) {
             // Query key is not valid
@@ -156,7 +156,7 @@ class RESTfulController extends BaseController
                 }
                 break;
             case 'text':
-                if (trim($queryValue) !== $queryValue) {
+                if (strlen(trim($queryValue)) != strlen($queryValue)) {
                     // Should not have leading or trailing spaces
                     return false;
                 }
@@ -177,9 +177,11 @@ class RESTfulController extends BaseController
                 }
                 break;
             case 'datetime':
-                $dateTime = DateTime::createFromFormat('Y-m-d H:i:s', $queryValue);
-                if (!is_object($dateTime)) {
-                    // Value is invalid as date/time using YMDHIS format
+                $dateTimeA = DateTime::createFromFormat('Y-m-d H:i:s', $queryValue);
+                $dateTimeB = DateTime::createFromFormat('Y-m-d H:i', $queryValue);
+                $dateTimeC = DateTime::createFromFormat('Y-m-d', $queryValue);
+                if (!is_object($dateTimeA) && !is_object($dateTimeB) && !is_object($dateTimeC)) {
+                    // Value is invalid for any format
                     return false;
                 }
                 break;
